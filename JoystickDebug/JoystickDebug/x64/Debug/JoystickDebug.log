@@ -1,0 +1,7 @@
+﻿  Joystick.cpp
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\um\dinput.h: DIRECTINPUT_VERSION undefined. Defaulting to version 0x0800
+  JoystickDebug.cpp
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\um\dinput.h: DIRECTINPUT_VERSION undefined. Defaulting to version 0x0800
+  Génération de code en cours...
+D:\Programmation\FiveM\FXServer\server-data\resources\FlightClub\JoystickDebug\JoystickDebug\Joystick.cpp(120): warning C4715: 'Joystick::InitializeJoystick' : les chemins de contrôle ne retournent pas tous une valeur
+  JoystickDebug.vcxproj -> D:\Programmation\FiveM\FXServer\server-data\resources\FlightClub\JoystickDebug\JoystickDebug\x64\Debug\JoystickDebug.exe

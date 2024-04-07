@@ -1,0 +1,152 @@
+<html>
+
+<head>
+    <title>Joystick Controller NUI</title>
+</head>
+
+<body></body>
+<script>
+    // Description des paramètres JS -> LUA :
+    // GamepadConnected (id: int, name: string, vendor: string, product: string)        | Send a event when gamepad is connected
+    // GamepadDisconnected (id: int)                                                    | Send a event when gamepad is unconnected
+    // GamepadInputCallback(controllers: object)                                        | Send an array with all data from all registered controllers
+
+    // Description des paramètres LUA -> JS :
+    // GamepadRegisterCallback(id: int)                                                 | Register the controller, for got input event
+    // GamepadUnregisterCallback(id: int)                                               | Unregister the controller, for disable the input event
+
+    let registeredGamepads = []
+
+    // Vérifie si une manette est bien enregistée
+    function isGamepadRegistered(id) {
+        for (let i = 0; i < registeredGamepads.length; i++) {
+            if (registeredGamepads[i] === id) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    // Enregistre une manette
+    function registerGamepad(id) {
+        registeredGamepads.push(id)
+    }
+
+    // Dé-enregistre une manette
+    function unregisterGamepad(id) {
+        var index = registeredGamepads.indexOf(id);
+        if (index !== -1) {
+            registeredGamepads.splice(index, 1);
+        }
+    }
+
+    // Attente de la connexion au Joystick
+    window.addEventListener("gamepadconnected", (e) => {
+        console.log(
+            "Gamepad connected at index %d: %s. %d buttons, %d axes.",
+            e.gamepad.index,
+            e.gamepad.id,
+            e.gamepad.buttons.length,
+            e.gamepad.axes.length,
+        );
+
+        const regex = /^([\w\s\d.,;:"'&!?\-\(\)]+)\s+\(Vendor:\s+([0-9a-fA-F]+)\s+Product:\s+([0-9a-fA-F]+)\)$/;
+        const match = regex.exec(e.gamepad.id)
+
+        const name = match[1]
+        const vendor = "0x" + match[2]
+        const product = "0x" + match[3]
+
+        fetch('http://FlightClub/GamepadConnected', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: e.gamepad.index,
+                name: name,
+                vendor: vendor,
+                product: product,
+            })
+        })
+    });
+
+    // Déconnexion du Joystick
+    window.addEventListener("gamepaddisconnected", (e) => {
+        console.log(
+            "Gamepad disconnected from index %d: %s",
+            e.gamepad.index,
+            e.gamepad.id
+        );
+
+        fetch('http://FlightClub/GamepadDisconnected', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: e.gamepad.index
+            })
+        })
+    });
+
+    // Fait une demande d'enregistrement d'un controlleur
+    window.addEventListener('message', (event) => {
+        let data = event.data
+        switch (data.action) {
+            case 'GamepadRegisterCallback': {
+                registerGamepad(data.id)
+            }
+
+            case 'GamepadUnregisterCallback': {
+                unregisterGamepad(data.id)
+            }
+
+            default: {
+                console.log("Undefined action: " + data.action)
+            }
+        }
+    })
+
+    // Fonction de récupération des commandes
+    function joystickLoop() {
+        const gamepads = navigator.getGamepads();
+        if (!gamepads) {
+            return;
+        }
+
+        let commands = {}
+        gamepads.forEach((gp) => {
+            if (gp && isGamepadRegistered(gp.index)) {
+                let buttons = []
+                for (let b = 0; b < gp.buttons.length; b++) {
+                    buttons.push(gp.buttons[b].pressed ? 1 : 0)
+                }
+
+                let axes = []
+                for (let a = 0; a < gp.axes.length; a++) {
+                    axes.push(gp.axes[a])
+                }
+
+                commands[gp.index] = { buttons: buttons, axes: axes }
+            }
+        });
+
+        fetch('http://FlightClub/GamepadInputCallback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(commands)
+        }).finally(() => {
+            console.log(joystickLoop)
+            requestAnimationFrame(joystickLoop);
+        })
+    }
+
+    // Démarre la récupération des données
+    requestAnimationFrame(joystickLoop);
+</script>
+
+</html>
